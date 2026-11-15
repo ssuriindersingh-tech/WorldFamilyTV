@@ -65,36 +65,36 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    
-private fun loadChannels(): List<Channel> {
-    return try {
-        val json = assets.open("channels.json")
-            .bufferedReader()
-            .use { it.readText() }
+    private fun loadChannels(): List<Channel> {
+        return try {
+            val json = assets.open("channels.json")
+                .bufferedReader()
+                .use { it.readText() }
 
-        val array = JSONArray(json)
+            val array = JSONArray(json)
 
-        (0 until array.length()).map { i ->
-            val item = array.getJSONObject(i)
+            (0 until array.length()).map { i ->
+                val item = array.getJSONObject(i)
 
-            Channel(
-                id = item.optString("id"),
-                name = item.optString("name"),
-                country = item.optString("country"),
-                flag = item.optString("flag"),
-                category = item.optString("category"),
-                language = item.optString("language"),
-                streamUrl = item.optString("streamUrl"),
-                logoUrl = item.optString("logoUrl")
+                Channel(
+                    id = item.optString("id"),
+                    name = item.optString("name"),
+                    country = item.optString("country"),
+                    flag = item.optString("flag"),
+                    category = item.optString("category"),
+                    language = item.optString("language"),
+                    streamUrl = item.optString("streamUrl"),
+                    logoUrl = item.optString("logoUrl")
+                )
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(
+                "WorldFamilyTV",
+                "Failed to load channels",
+                e
             )
+            emptyList()
         }
-    } catch (e: Exception) {
-        android.util.Log.e(
-            "WorldFamilyTV",
-            "Failed to load channels",
-            e
-        )
-        emptyList()
     }
 }
 
@@ -116,7 +116,7 @@ fun WorldFamilyTV(channels: List<Channel>) {
 
     val isTV =
         configuration.uiMode and Configuration.UI_MODE_TYPE_MASK ==
-        Configuration.UI_MODE_TYPE_TELEVISION
+            Configuration.UI_MODE_TYPE_TELEVISION
 
     val columns =
         if (isTV || configuration.screenWidthDp >= 800) 4 else 2
@@ -154,10 +154,10 @@ fun WorldFamilyTV(channels: List<Channel>) {
 
         (
             search.isBlank() ||
-            channel.name.contains(search, true) ||
-            channel.country.contains(search, true) ||
-            channel.language.contains(search, true)
-        )
+                channel.name.contains(search, true) ||
+                channel.country.contains(search, true) ||
+                channel.language.contains(search, true)
+            )
     }
 
     MaterialTheme(
