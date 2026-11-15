@@ -65,14 +65,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun loadChannels(): List<Channel> {
+    
+private fun loadChannels(): List<Channel> {
+    return try {
         val json = assets.open("channels.json")
             .bufferedReader()
             .use { it.readText() }
 
         val array = JSONArray(json)
 
-        return (0 until array.length()).map { i ->
+        (0 until array.length()).map { i ->
             val item = array.getJSONObject(i)
 
             Channel(
@@ -86,6 +88,13 @@ class MainActivity : ComponentActivity() {
                 logoUrl = item.optString("logoUrl")
             )
         }
+    } catch (e: Exception) {
+        android.util.Log.e(
+            "WorldFamilyTV",
+            "Failed to load channels",
+            e
+        )
+        emptyList()
     }
 }
 
