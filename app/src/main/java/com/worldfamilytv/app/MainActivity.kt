@@ -65,38 +65,60 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun loadChannels(): List<Channel> {
-        return try {
-            val json = assets.open("channels.json")
-                .bufferedReader()
-                .use { it.readText() }
+    
+private fun loadChannels(): List<Channel> {
+    return try {
+        val assetFiles = assets.list("")?.joinToString()
+        android.util.Log.d(
+            "WorldFamilyTV",
+            "Available assets: $assetFiles"
+        )
 
-            val array = JSONArray(json)
+        val json = assets.open("channels.json")
+            .bufferedReader()
+            .use { it.readText() }
 
-            (0 until array.length()).map { i ->
-                val item = array.getJSONObject(i)
+        val array = JSONArray(json)
 
-                Channel(
-                    id = item.optString("id"),
-                    name = item.optString("name"),
-                    country = item.optString("country"),
-                    flag = item.optString("flag"),
-                    category = item.optString("category"),
-                    language = item.optString("language"),
-                    streamUrl = item.optString("streamUrl"),
-                    logoUrl = item.optString("logoUrl")
-                )
-            }
-        } catch (e: Exception) {
-            android.util.Log.e(
-                "WorldFamilyTV",
-                "Failed to load channels",
-                e
+        val result = (0 until array.length()).map { i ->
+            val item = array.getJSONObject(i)
+
+            Channel(
+                id = item.optString("id"),
+                name = item.optString("name"),
+                country = item.optString("country"),
+                flag = item.optString("flag"),
+                category = item.optString("category"),
+                language = item.optString("language"),
+                streamUrl = item.optString("streamUrl"),
+                logoUrl = item.optString("logoUrl")
             )
-            emptyList()
         }
+
+        android.util.Log.d(
+            "WorldFamilyTV",
+            "Successfully loaded ${result.size} channels"
+        )
+
+        result
+
+    } catch (e: Exception) {
+        android.util.Log.e(
+            "WorldFamilyTV",
+            "Failed to load channels",
+            e
+        )
+
+        android.widget.Toast.makeText(
+            this,
+            "Channel loading error: ${e.message}",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
+
+        emptyList()
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
