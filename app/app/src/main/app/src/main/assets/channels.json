@@ -1,0 +1,83 @@
+
+[
+  {
+    "id": "india-news-01",
+    "name": "India News",
+    "country": "India",
+    "flag": "🇮🇳",
+    "category": "News",
+    "language": "Hindi",
+    "streamUrl": "",
+    "logoUrl": ""
+  },
+  {
+    "id": "uk-news-01",
+    "name": "UK News",
+    "country": "United Kingdom",
+    "flag": "🇬🇧",
+    "category": "News",
+    "language": "English",
+    "streamUrl": "",
+    "logoUrl": ""
+  },
+  {
+    "id": "usa-news-01",
+    "name": "USA News",
+    "country": "United States",
+    "flag": "🇺🇸",
+    "category": "News",
+    "language": "English",
+    "streamUrl": "",
+    "logoUrl": ""
+  },
+  {
+    "id": "canada-tv-01",
+    "name": "Canada TV",
+    "country": "Canada",
+    "flag": "🇨🇦",
+    "category": "Entertainment",
+    "language": "English",
+    "streamUrl": "",
+    "logoUrl": ""
+  },
+  {
+    "id": "australia-tv-01",
+    "name": "Australia TV",
+    "country": "Australia",
+    "flag": "🇦🇺",
+    "category": "Entertainment",
+    "language": "English",
+    "streamUrl": "",
+    "logoUrl": ""
+  },
+  {
+    "id": "france-tv-01",
+    "name": "France TV",
+    "country": "France",
+    "flag": "🇫🇷",
+    "category": "Entertainment",
+    "language": "French",
+    "streamUrl": "",
+    "logoUrl": ""
+  },
+  {
+    "id": "germany-tv-01",
+    "name": "Germany TV",
+    "country": "Germany",
+    "flag": "🇩🇪",
+    "category": "Entertainment",
+    "language": "German",
+    "streamUrl": "",
+    "logoUrl": ""
+  },
+  {
+    "id": "uae-news-01",
+    "name": "UAE News",
+    "country": "United Arab Emirates",
+    "flag": "🇦🇪",
+    "category": "News",
+    "language": "Arabic",
+    "streamUrl": "",
+    "logoUrl": ""
+  }
+]
