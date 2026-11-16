@@ -3,6 +3,7 @@ package com.worldfamilytv.app
 
 import android.os.Bundle
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
@@ -65,60 +66,53 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    
-private fun loadChannels(): List<Channel> {
-    return try {
-        val assetFiles = assets.list("")?.joinToString()
-        android.util.Log.d(
-            "WorldFamilyTV",
-            "Available assets: $assetFiles"
-        )
+    private fun loadChannels(): List<Channel> {
+        return try {
+            val json = assets.open("channels.json")
+                .bufferedReader()
+                .use { it.readText() }
 
-        val json = assets.open("channels.json")
-            .bufferedReader()
-            .use { it.readText() }
+            val array = JSONArray(json)
 
-        val array = JSONArray(json)
+            val result = (0 until array.length()).map { i ->
+                val item = array.getJSONObject(i)
 
-        val result = (0 until array.length()).map { i ->
-            val item = array.getJSONObject(i)
+                Channel(
+                    id = item.optString("id"),
+                    name = item.optString("name"),
+                    country = item.optString("country"),
+                    flag = item.optString("flag"),
+                    category = item.optString("category"),
+                    language = item.optString("language"),
+                    streamUrl = item.optString("streamUrl"),
+                    logoUrl = item.optString("logoUrl")
+                )
+            }
 
-            Channel(
-                id = item.optString("id"),
-                name = item.optString("name"),
-                country = item.optString("country"),
-                flag = item.optString("flag"),
-                category = item.optString("category"),
-                language = item.optString("language"),
-                streamUrl = item.optString("streamUrl"),
-                logoUrl = item.optString("logoUrl")
+            android.util.Log.d(
+                "WorldFamilyTV",
+                "Successfully loaded ${result.size} channels"
             )
+
+            result
+
+        } catch (e: Exception) {
+            android.util.Log.e(
+                "WorldFamilyTV",
+                "Failed to load channels",
+                e
+            )
+
+            Toast.makeText(
+                this,
+                "Channel loading error: ${e.message}",
+                Toast.LENGTH_LONG
+            ).show()
+
+            emptyList()
         }
-
-        android.util.Log.d(
-            "WorldFamilyTV",
-            "Successfully loaded ${result.size} channels"
-        )
-
-        result
-
-    } catch (e: Exception) {
-        android.util.Log.e(
-            "WorldFamilyTV",
-            "Failed to load channels",
-            e
-        )
-
-        android.widget.Toast.makeText(
-            this,
-            "Channel loading error: ${e.message}",
-            android.widget.Toast.LENGTH_LONG
-        ).show()
-
-        emptyList()
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,17 +163,14 @@ fun WorldFamilyTV(channels: List<Channel>) {
     val filteredChannels = channels.filter { channel ->
 
         (country == "All" || channel.country == country) &&
-
         (category == "All" || channel.category == category) &&
-
         (!showFavourites || favourites.contains(channel.id)) &&
-
         (
             search.isBlank() ||
-                channel.name.contains(search, true) ||
-                channel.country.contains(search, true) ||
-                channel.language.contains(search, true)
-            )
+            channel.name.contains(search, true) ||
+            channel.country.contains(search, true) ||
+            channel.language.contains(search, true)
+        )
     }
 
     MaterialTheme(
@@ -423,7 +414,6 @@ fun WorldFamilyTV(channels: List<Channel>) {
                                 isFavourite = favourites.contains(channel.id),
 
                                 onFavourite = {
-
                                     if (favourites.contains(channel.id)) {
                                         favourites.remove(channel.id)
                                     } else {
@@ -496,9 +486,7 @@ fun ChannelCard(
                             Icons.Default.Favorite
                         else
                             Icons.Default.FavoriteBorder,
-
                         contentDescription = "Favourite",
-
                         tint = if (isFavourite)
                             Color(0xFFFF6685)
                         else
@@ -560,11 +548,9 @@ fun TVPlayer(
             ExoPlayer.Builder(context)
                 .build()
                 .apply {
-
                     setMediaItem(
                         MediaItem.fromUri(channel.streamUrl)
                     )
-
                     prepare()
                     playWhenReady = true
                 }
@@ -575,7 +561,6 @@ fun TVPlayer(
     }
 
     DisposableEffect(player) {
-
         onDispose {
             player?.release()
         }
@@ -591,7 +576,6 @@ fun TVPlayer(
         TextButton(
             onClick = onBack
         ) {
-
             Text(
                 "← Back to channels",
                 color = Accent
@@ -616,13 +600,11 @@ fun TVPlayer(
 
             AndroidView(
                 factory = { ctx ->
-
                     PlayerView(ctx).apply {
                         this.player = player
                         useController = true
                     }
                 },
-
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
