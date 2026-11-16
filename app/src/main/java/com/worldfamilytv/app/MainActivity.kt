@@ -1,9 +1,8 @@
 
 package com.worldfamilytv.app
 
-import android.os.Bundle
 import android.content.res.Configuration
-import android.widget.Toast
+import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
@@ -36,93 +35,58 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
-import org.json.JSONArray
 
 private val Background = Color(0xFF080B14)
 private val Panel = Color(0xFF171F31)
 private val Accent = Color(0xFF7568FF)
 private val Muted = Color(0xFF9AA4B8)
 
-data class Channel(
-    val id: String,
-    val name: String,
-    val country: String,
-    val flag: String,
-    val category: String,
-    val language: String,
-    val streamUrl: String,
-    val logoUrl: String
-)
-
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val channels = loadChannels()
-
         setContent {
-            WorldFamilyTV(channels)
-        }
-    }
-
-    private fun loadChannels(): List<Channel> {
-        return try {
-            val json = assets.open("channels.json")
-                .bufferedReader()
-                .use { it.readText() }
-
-            val array = JSONArray(json)
-
-            val result = (0 until array.length()).map { i ->
-                val item = array.getJSONObject(i)
-
-                Channel(
-                    id = item.optString("id"),
-                    name = item.optString("name"),
-                    country = item.optString("country"),
-                    flag = item.optString("flag"),
-                    category = item.optString("category"),
-                    language = item.optString("language"),
-                    streamUrl = item.optString("streamUrl"),
-                    logoUrl = item.optString("logoUrl")
-                )
-            }
-
-            android.util.Log.d(
-                "WorldFamilyTV",
-                "Successfully loaded ${result.size} channels"
-            )
-
-            result
-
-        } catch (e: Exception) {
-            android.util.Log.e(
-                "WorldFamilyTV",
-                "Failed to load channels",
-                e
-            )
-
-            Toast.makeText(
-                this,
-                "Channel loading error: ${e.message}",
-                Toast.LENGTH_LONG
-            ).show()
-
-            emptyList()
+            WorldFamilyTV()
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorldFamilyTV(channels: List<Channel>) {
+fun WorldFamilyTV() {
 
-    var country by remember { mutableStateOf("All") }
-    var category by remember { mutableStateOf("All") }
-    var search by remember { mutableStateOf("") }
-    var selectedChannel by remember { mutableStateOf<Channel?>(null) }
-    var showFavourites by remember { mutableStateOf(false) }
+    var channels by remember {
+        mutableStateOf<List<TVChannel>>(emptyList())
+    }
+
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+    var errorMessage by remember {
+        mutableStateOf("")
+    }
+
+    var country by remember {
+        mutableStateOf("All")
+    }
+
+    var category by remember {
+        mutableStateOf("All")
+    }
+
+    var search by remember {
+        mutableStateOf("")
+    }
+
+    var selectedChannel by remember {
+        mutableStateOf<TVChannel?>(null)
+    }
+
+    var showFavourites by remember {
+        mutableStateOf(false)
+    }
 
     val favourites = remember {
         mutableStateListOf<String>()
@@ -131,40 +95,66 @@ fun WorldFamilyTV(channels: List<Channel>) {
     val configuration = LocalConfiguration.current
 
     val isTV =
-        configuration.uiMode and Configuration.UI_MODE_TYPE_MASK ==
-            Configuration.UI_MODE_TYPE_TELEVISION
+        configuration.uiMode and
+        Configuration.UI_MODE_TYPE_MASK ==
+        Configuration.UI_MODE_TYPE_TELEVISION
 
     val columns =
         if (isTV || configuration.screenWidthDp >= 800) 4 else 2
 
-    val countries = listOf(
-        "All",
-        "India",
-        "United Kingdom",
-        "United States",
-        "Canada",
-        "Australia",
-        "France",
-        "Germany",
-        "United Arab Emirates"
-    )
+    // Download worldwide channels and streams
 
-    val categories = listOf(
-        "All",
-        "News",
-        "Movies",
-        "Sports",
-        "Kids",
-        "Music",
-        "Entertainment",
-        "Documentary"
-    )
+    LaunchedEffect(Unit) {
+
+        isLoading = true
+        errorMessage = ""
+
+        try {
+
+            channels = WorldTVRepository.getWorldwideChannels()
+
+            if (channels.isEmpty()) {
+                errorMessage = "No channels available. Check your internet connection."
+            }
+
+        } catch (e: Exception) {
+
+            errorMessage = "Unable to load channels: ${e.message}"
+
+        } finally {
+
+            isLoading = false
+        }
+    }
+
+    // Dynamic country and category lists
+
+    val countries = remember(channels) {
+        listOf("All") +
+            channels.map { it.country }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .sorted()
+    }
+
+    val categories = remember(channels) {
+        listOf("All") +
+            channels.map { it.category }
+                .filter { it.isNotBlank() }
+                .distinct()
+                .sorted()
+    }
+
+    // Filter channels
 
     val filteredChannels = channels.filter { channel ->
 
         (country == "All" || channel.country == country) &&
+
         (category == "All" || channel.category == category) &&
+
         (!showFavourites || favourites.contains(channel.id)) &&
+
         (
             search.isBlank() ||
             channel.name.contains(search, true) ||
@@ -189,7 +179,9 @@ fun WorldFamilyTV(channels: List<Channel>) {
 
             TVPlayer(
                 channel = selectedChannel!!,
-                onBack = { selectedChannel = null }
+                onBack = {
+                    selectedChannel = null
+                }
             )
 
         } else {
@@ -309,17 +301,8 @@ fun WorldFamilyTV(channels: List<Channel>) {
                             },
                             label = {
                                 Text(
-                                    when (item) {
-                                        "All" -> "🌍 All"
-                                        "India" -> "🇮🇳 India"
-                                        "United Kingdom" -> "🇬🇧 UK"
-                                        "United States" -> "🇺🇸 USA"
-                                        "Canada" -> "🇨🇦 Canada"
-                                        "Australia" -> "🇦🇺 Australia"
-                                        "France" -> "🇫🇷 France"
-                                        "Germany" -> "🇩🇪 Germany"
-                                        else -> "🇦🇪 UAE"
-                                    }
+                                    if (item == "All") "🌍 All"
+                                    else item
                                 )
                             }
                         )
@@ -374,7 +357,12 @@ fun WorldFamilyTV(channels: List<Channel>) {
                                 category = item
                             },
                             label = {
-                                Text(item)
+                                Text(
+                                    if (item == "All") "All"
+                                    else item.replaceFirstChar {
+                                        it.uppercase()
+                                    }
+                                )
                             }
                         )
                     }
@@ -382,49 +370,129 @@ fun WorldFamilyTV(channels: List<Channel>) {
 
                 Spacer(Modifier.height(15.dp))
 
-                if (filteredChannels.isEmpty()) {
+                when {
 
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    isLoading -> {
 
-                        Text(
-                            "No channels found",
-                            color = Muted
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+
+                                CircularProgressIndicator(
+                                    color = Accent
+                                )
+
+                                Spacer(Modifier.height(15.dp))
+
+                                Text(
+                                    "Loading worldwide channels...",
+                                    color = Color.White
+                                )
+                            }
+                        }
                     }
 
-                } else {
+                    errorMessage.isNotEmpty() -> {
 
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(columns),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 30.dp)
-                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
 
-                        items(
-                            filteredChannels,
-                            key = { it.id }
-                        ) { channel ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
 
-                            ChannelCard(
-                                channel = channel,
-                                isFavourite = favourites.contains(channel.id),
+                                Text(
+                                    errorMessage,
+                                    color = Color.White
+                                )
 
-                                onFavourite = {
-                                    if (favourites.contains(channel.id)) {
-                                        favourites.remove(channel.id)
-                                    } else {
-                                        favourites.add(channel.id)
+                                Spacer(Modifier.height(12.dp))
+
+                                Button(
+                                    onClick = {
+                                        // Retry is handled by recreating
+                                        // the activity or app.
+                                        errorMessage =
+                                            "Please restart the app to retry."
                                     }
-                                },
-
-                                onClick = {
-                                    selectedChannel = channel
+                                ) {
+                                    Text("Retry")
                                 }
+                            }
+                        }
+                    }
+
+                    filteredChannels.isEmpty() -> {
+
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+
+                            Text(
+                                if (showFavourites)
+                                    "No favourite channels yet"
+                                else
+                                    "No channels found",
+                                color = Muted
                             )
+                        }
+                    }
+
+                    else -> {
+
+                        Text(
+                            "${filteredChannels.size} channels available",
+                            color = Muted,
+                            fontSize = 12.sp
+                        )
+
+                        Spacer(Modifier.height(8.dp))
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(columns),
+                            horizontalArrangement =
+                                Arrangement.spacedBy(12.dp),
+                            verticalArrangement =
+                                Arrangement.spacedBy(12.dp),
+                            contentPadding =
+                                PaddingValues(bottom = 30.dp)
+                        ) {
+
+                            items(
+                                filteredChannels,
+                                key = { it.id }
+                            ) { channel ->
+
+                                ChannelCard(
+                                    channel = channel,
+
+                                    isFavourite =
+                                        favourites.contains(channel.id),
+
+                                    onFavourite = {
+
+                                        if (
+                                            favourites.contains(channel.id)
+                                        ) {
+                                            favourites.remove(channel.id)
+                                        } else {
+                                            favourites.add(channel.id)
+                                        }
+                                    },
+
+                                    onClick = {
+                                        selectedChannel = channel
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -435,7 +503,7 @@ fun WorldFamilyTV(channels: List<Channel>) {
 
 @Composable
 fun ChannelCard(
-    channel: Channel,
+    channel: TVChannel,
     isFavourite: Boolean,
     onFavourite: () -> Unit,
     onClick: () -> Unit
@@ -470,7 +538,7 @@ fun ChannelCard(
                 ) {
 
                     Text(
-                        channel.flag,
+                        channel.flag.ifBlank { "🌍" },
                         fontSize = 25.sp
                     )
                 }
@@ -523,9 +591,15 @@ fun ChannelCard(
                 )
 
                 Text(
-                    "WATCH LIVE",
-                    color = Accent,
-                    fontSize = 11.sp,
+                    if (channel.streamUrl.isNotBlank())
+                        "WATCH LIVE"
+                    else
+                        "STREAM UNAVAILABLE",
+                    color = if (channel.streamUrl.isNotBlank())
+                        Accent
+                    else
+                        Muted,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -535,7 +609,7 @@ fun ChannelCard(
 
 @Composable
 fun TVPlayer(
-    channel: Channel,
+    channel: TVChannel,
     onBack: () -> Unit
 ) {
 
@@ -548,9 +622,11 @@ fun TVPlayer(
             ExoPlayer.Builder(context)
                 .build()
                 .apply {
+
                     setMediaItem(
                         MediaItem.fromUri(channel.streamUrl)
                     )
+
                     prepare()
                     playWhenReady = true
                 }
@@ -561,6 +637,7 @@ fun TVPlayer(
     }
 
     DisposableEffect(player) {
+
         onDispose {
             player?.release()
         }
@@ -576,6 +653,7 @@ fun TVPlayer(
         TextButton(
             onClick = onBack
         ) {
+
             Text(
                 "← Back to channels",
                 color = Accent
@@ -590,7 +668,7 @@ fun TVPlayer(
         )
 
         Text(
-            "${channel.flag} ${channel.country}",
+            "${channel.flag.ifBlank { "🌍" }} ${channel.country}",
             color = Muted
         )
 
@@ -600,6 +678,7 @@ fun TVPlayer(
 
             AndroidView(
                 factory = { ctx ->
+
                     PlayerView(ctx).apply {
                         this.player = player
                         useController = true
@@ -635,13 +714,13 @@ fun TVPlayer(
                     )
 
                     Text(
-                        "Stream not configured yet",
+                        "Stream unavailable",
                         color = Color.White,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
-                        "An official streaming URL is required.",
+                        "This channel has no available stream URL.",
                         color = Muted,
                         fontSize = 12.sp
                     )
