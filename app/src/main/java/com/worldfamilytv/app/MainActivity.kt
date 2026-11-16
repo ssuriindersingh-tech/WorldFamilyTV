@@ -203,6 +203,7 @@ fun WorldFamilyTV() {
             ) {
 
                 Spacer(Modifier.height(24.dp))
+                WorldTVLogo()
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
